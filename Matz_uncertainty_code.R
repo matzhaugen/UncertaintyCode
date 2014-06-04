@@ -1,4 +1,7 @@
-dir = "/Users/matzhaugen/GoogleDrive/Research/DSwainCollaboration/SharedBAMS/UncertaintyCode"
+#dir = "/Users/matzhaugen/GoogleDrive/Research/DSwainCollaboration/SharedBAMS/UncertaintyCode"
+#setwd(dir)
+
+dir = "/Users/matzhaugen/GoogleDrive/Research/DSwainCollaboration/SharedBAMS/UncertaintyCodeDaniel"
 setwd(dir)
 
 library(ncdf4)
@@ -25,31 +28,47 @@ library(MASS)
 # 1. observational: total_baseline
 # 2. preindustrial: get_pi_pr_mod
 # 3. historical: get_hist_pr_mod
-load("DeeptisData.RData") 
-preindustrial = get_pi_pr_mod
-historical = get_hist_pr_mod
-Z.observed = total_baseline
+#preindustrial = get_pi_pr_mod
+#historical = get_hist_pr_mod
+#Z.observed = total_baseline
 #Select a model
-model = 1
-Z.historical = c(get_hist_pr_mod[,,model])
-Z.preindustrial = c(get_pi_pr_mod[,,model])
+#model = 1
+#Z.historical = c(get_hist_pr_mod[,,model])
+#Z.preindustrial = c(get_pi_pr_mod[,,model])
+#Z.historical = Z.historical[!is.na(Z.historical)]
+#Z.preindustrial = Z.preindustrial[!is.na(Z.preindustrial)]
+
+load("z.giss.hist.new")
+load("z.hadgem.hist.new")
+load("z.noresm.hist.new")
+load("z.giss.pi.new")
+load("z.hadgem.pi.new")
+load("z.noresm.pi.new")
+load("z.obs.new")
+
+Z.historical = c(hgt.giss.hist,hgt.hadgem.hist,hgt.noresm.hist)
+Z.preindustrial = c(hgt.giss.pi,hgt.hadgem.pi,hgt.noresm.pi)
 Z.historical = Z.historical[!is.na(Z.historical)]
 Z.preindustrial = Z.preindustrial[!is.na(Z.preindustrial)]
+Z.observed = hgt.annual.full[1:34]
+
+total_2013 = max(hgt.annual.full)
+
 
 
 # Run Bootstrap #
 set.seed(3)
-B = 50
-nmodels = 3
+B = 10
+nmodels = 1
 ratios = matrix(0, B, nmodels)
 for (i in 1:nmodels) {
 	model = i
-	Z.historical = c(get_hist_pr_mod[,,model])
-	Z.preindustrial = c(get_pi_pr_mod[,,model])
+	#Z.historical = c(get_hist_pr_mod[,,model])
+	#Z.preindustrial = c(get_pi_pr_mod[,,model])
 	Z.historical = Z.historical[!is.na(Z.historical)]
 	Z.preindustrial = Z.preindustrial[!is.na(Z.preindustrial)]
 	
-	ratios[,i] = output(Z.observed, Z.historical, Z.preindustrial, total_2013, B, plotit=F)
+	ratios[,i] = output(Z.observed, Z.historical, Z.preindustrial, total_2013, B, plotit=T)
 }
 #################
 
@@ -160,23 +179,32 @@ confidenceInterval = c(quantile(returnPeriod,0.975), quantile(returnPeriod,0.025
 
 #This function estimates parameter bounds of the pareto iii distribution. 
 #Use squared error loss
-paretoSecondMoment = function(inequality, scale, secondMoment) {
-	output = (secondMoment - scale^2*gamma(1-2*inequality)*gamma(1+2*inequality))^2
+paretoFirstMoment = function(inequality, scale, firstMoment) {
+	output = (firstMoment - scale*gamma(1-inequality)*gamma(1+inequality))^2
 	output
 }
+
+paretoFirstSecondMoment = function(u, firstMoment, secondMoment, inequality =0.01) {
+	output1 = (firstMoment - u[1] - u[2]*gamma(1-inequality)*gamma(1+inequality))^2
+	output2 = (secondMoment - u[1]^2 - u[2]^2*gamma(1-2*inequality)*gamma(1+2*inequality) 
+					- 2*u[1]*u[2]*gamma(1-inequality)*gamma(1+inequality))^2
+	output1 + output2
+}
 getBounds = function(z) {
-	p2Window = 0.7
-	p3Window = 0.7
+	p2Window = 0.5
+	p3Window = 0.5
+	p2factor = 5
+	p3factor = 5	
 	Ez = mean(z)
 	SDz = sd(z)
-	p1 = min(z)-1/2*SDz
+	p1 = min(z)-SDz
 	p3 = 0.1
-	p2 = Ez/gamma(1-p3)/gamma(1+p3)
-	#update inequality
-	p3 = optim(p3,paretoSecondMoment, scale=p2,secondMoment=SDz^2+Ez^2,
-		lower=0.001, upper=c(0.48), method="L-BFGS-B")$par
-	lower = c(p1-SDz/2,p2*(p2Window), 0.001)
-	upper = c(min(z)-SDz/1000, p2*(2-p2Window),min((2-p3Window)*p3))	
+	p2 = mean(z-p1)/gamma(1-p3)/gamma(1+p3)
+	#Update the first two parameters
+	out1 = optim(c(p1,p2),paretoFirstSecondMoment, firstMoment=Ez, secondMoment=mean(z^2))$par
+	p1 = out1[1]; p2 = out1[2]
+	lower = c(p1-100*SDz,p2/p2factor, 0.001)
+	upper = c(min(z)-SDz/1000, p2*p2factor,min(p3factor*p3,0.49))	
 	
 	optPar = optim(c(p1,p2,p3),loglikParetoiii,obs=z,method="L-BFGS-B",
 		lower = lower, upper=upper)
@@ -188,7 +216,7 @@ getBounds = function(z) {
 	print(paste("Optimal bounds: ", p1,p2,p3))
 	lower = c(p1-SDz,p2*(p2Window), max(p3Window*p3,0.01))
 	upper = c(min(z)-SDz/1000, p2*(2-p2Window),min((2-p3Window)*p3,0.99))	
-	list(lower=lower,upper=upper)
+	list(lower=lower,upper=upper, optimal=c(p1,p2,p3))
 }
 ########### ########### ########### ########### ########### ########### ########### ########### 
 ######### Get return ratio between historical and preinducstrial using 
