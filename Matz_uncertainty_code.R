@@ -73,7 +73,7 @@ total_2013 = obs.2013.dt
 
 # Run Bootstrap #
 set.seed(3)
-B = 1000
+B = 10
 nmodels = 1
 ratios = matrix(0, B, nmodels)
 for (i in 1:nmodels) {
@@ -83,7 +83,7 @@ for (i in 1:nmodels) {
 	Z.historical = Z.historical[!is.na(Z.historical)]
 	Z.preindustrial = Z.preindustrial[!is.na(Z.preindustrial)]
 	
-	ratios[,i] = output(Z.observed, Z.historical, Z.preindustrial, total_2013, B, plotit=F)
+	ratios[,i] = output(Z.observed, Z.historical, Z.preindustrial, total_2013, B, plotit=T)
 }
 #################
 
@@ -375,12 +375,15 @@ output = function(Z.observed, Z.historical, Z.preindustrial, maxPoint, B=100, pl
 		ratioPreOverObs[i] = returnPeriodPre[i]/returnPeriodObs[i]
 		paramsStar[i,] = c(out$par, outHist$par, outPre$par)
 		par(mfrow=c(1,3))
+		layout(mat=matrix(c(1,2,3,4,4,4),2,3,byrow=T))
 		if (plotit) {
 			par(ask=T)
-			plotZs(obsStar, out$par, xlim=range(Z.observed), 
-				main=paste(out$par[1],out$par[2], out$par[3]))
-			plotZs(histStar, outHist$par, xlim=range(Z.historical))
-			plotZs(preStar, outPre$par, xlim=range(Z.preindustrial))
+			plotZs(obsStar, out$par, xlim=range(Z.observed), main="Observed")
+			plotZs(histStar, outHist$par, xlim=range(Z.historical), main="Historical")
+			plotZs(preStar, outPre$par, xlim=range(Z.preindustrial), main="Preindustrial")
+			comp.hist(histStar, preStar, xlab="GPH")
+			abline(v=histAtPobs[i])
+			legend("topright",c( "Historical","Preindustrial"), col=c(4,2),lty=1)
 			print(outPre$par)
 			print(outPre$value)
 		} else {
