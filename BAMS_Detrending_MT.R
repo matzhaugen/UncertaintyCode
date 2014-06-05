@@ -29,7 +29,10 @@ detrend <- function(vec,n=27){
 		vec.list[[i]] <- vec[(i-1)*n + 1:n]
 	}
 	fit.list <- lapply(vec.list,function(x){lm(x ~ I(1:n))})
-	resids.mat <- sapply(fit.list,function(x){x$resid})
+	# Remove the fitted trend (including intercept)
+	#resids.mat <- sapply(fit.list,function(x){x$resid})
+	# Only remove slope term, not intercept
+	resids.mat <- sapply(fit.list,function(x){x$resid + summary(x)$coef[1,1]})
 	list("vec"=vec.list,"fit"=fit.list,"resid"=resids.mat)
 }
 
@@ -64,6 +67,7 @@ Z.giss.dt <- c(dt.giss$resid)
 Z.hadgem.dt <- c(dt.hadgem$resid)
 Z.noresm.dt <- c(dt.noresm$resid)
 Z.observed.dt <- c(dt.observed$resid)
-obs.2013.dt <- max.dat.ncep - pred.2013
+#obs.2013.dt <- max.dat.ncep - pred.2013
+obs.2013.dt <- max.dat.ncep - summary(dt.observed$fit[[1]])$coef[2,1]*35
 
 #save(Z.giss.dt,Z.hadgem.dt,Z.noresm.dt,Z.observed.dt,obs.2013.dt,file="Detrended.RData")
