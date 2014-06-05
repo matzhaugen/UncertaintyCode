@@ -1,7 +1,7 @@
 #dir = "/Users/matzhaugen/GoogleDrive/Research/DSwainCollaboration/SharedBAMS/UncertaintyCode"
 #setwd(dir)
 
-dir = "/Users/matzhaugen/GoogleDrive/Research/DSwainCollaboration/SharedBAMS/UncertaintyCodeDaniel"
+dir = "/Users/dlswain/Dropbox/BAMS_2013/UncertaintyCode2"
 setwd(dir)
 
 library(ncdf4)
@@ -45,20 +45,33 @@ load("z.giss.pi.new")
 load("z.hadgem.pi.new")
 load("z.noresm.pi.new")
 load("z.obs.new")
+load("Detrended.RData")
 
+#DANIEL'S EDITS 6-3-2014
+
+##########USE THESE VARIABLES IF *NOT* DETRENDING##########
 Z.historical = c(hgt.giss.hist,hgt.hadgem.hist,hgt.noresm.hist)
 Z.preindustrial = c(hgt.giss.pi,hgt.hadgem.pi,hgt.noresm.pi)
 Z.historical = Z.historical[!is.na(Z.historical)]
 Z.preindustrial = Z.preindustrial[!is.na(Z.preindustrial)]
 Z.observed = hgt.annual.full[1:34]
-
 total_2013 = max(hgt.annual.full)
+# RESULTS: MEDIAN = 4.61
+# 95% Confidence interval (B=1000) : [2.67, 9.95]
+###########################################################
 
-
+##########USE THESE VARIABLES IF DETRENDING#################
+Z.historical = c(Z.giss.dt,Z.hadgem.dt,Z.noresm.dt)
+Z.preindustrial = c(hgt.giss.pi,hgt.hadgem.pi,hgt.noresm.pi)
+Z.historical = Z.historical[!is.na(Z.historical)]
+Z.preindustrial = Z.preindustrial[!is.na(Z.preindustrial)]
+Z.observed = Z.observed.dt
+total_2013 = obs.2013.dt
+###########################################################
 
 # Run Bootstrap #
 set.seed(3)
-B = 10
+B = 1000
 nmodels = 1
 ratios = matrix(0, B, nmodels)
 for (i in 1:nmodels) {
@@ -68,9 +81,21 @@ for (i in 1:nmodels) {
 	Z.historical = Z.historical[!is.na(Z.historical)]
 	Z.preindustrial = Z.preindustrial[!is.na(Z.preindustrial)]
 	
-	ratios[,i] = output(Z.observed, Z.historical, Z.preindustrial, total_2013, B, plotit=T)
+	ratios[,i] = output(Z.observed, Z.historical, Z.preindustrial, total_2013, B, plotit=F)
 }
 #################
+
+#Plot likelihood space
+boundsObs = getBounds(Z.observed)
+plotLikeli(Z.preindustrial, c(4850,550,0.01), c(5000,750,0.03), n=30)
+##### Good bounds for non-detrended data
+# Obs lower/upper: c(5350,20,0.01), c(5500,300,0.1)
+# Hist Global 5310.0000  288.0000    0.0238
+#      lower/upper c(5250,150,0.01), c(5450,350,0.06)
+# Pre  Global 4970.0000  616.0000    0.0107
+#  	   lower/upper c(4850,550,0.01), c(5000,750,0.03)
+##################################################
+##### Good bounds for detrended data
 
 
 #Plotting - ecdf
@@ -79,8 +104,8 @@ for (i in 2:nmodels) {
 	lines(ecdf(ratios[,i]),col=i)
 }
 
-
-hist(ratioPreOverObs[ratioPreOverObs<3], main="")
+ratioPreOverObs = ratios[,1]
+hist(ratioPreOverObs[ratioPreOverObs<7], main="")
 abline(v=ratioPreOverObs[1])
 abline(v=median(ratioPreOverObs),col=2)
 legend("topright", c("Point Estimate", "Median"),col=c(1,2), lty=1)
@@ -96,6 +121,11 @@ par(mfrow=c(3,3)); for (i in 1:9) {hist(paramsStar[,i])}
 loglikParetoiii = function(params, obs) {
 	-sum(log(dparetoIII(obs,location=params[1],scale=params[2],inequality=params[3])))
 }
+
+loglikParetoiii2 = function(p2, p3, p1, obs) {
+	-sum(log(dparetoIII(obs,location=p1,scale=p2,inequality=p3)))
+}
+
 
 plotZs = function(obs, params, ...) {
 	hist(obs,breaks=10,col="lightgrey",prob=TRUE, ...)
@@ -190,11 +220,38 @@ paretoFirstSecondMoment = function(u, firstMoment, secondMoment, inequality =0.0
 					- 2*u[1]*u[2]*gamma(1-inequality)*gamma(1+inequality))^2
 	output1 + output2
 }
+
+plotLikeli = function(z, lower, upper, n=40) {
+	p1 = seq(lower[1],upper[1], length = n)
+	p2 = seq(lower[2],upper[2], length = n)
+	p3 = seq(lower[3],upper[3], length = n)
+	likelihoodSpace = array(0, dim=c(n,n,n))
+	print(n)
+	par(ask=T)
+	for (i in 1:n) {
+		for (j in 1:n) {
+			for (k in 1:n) {
+			likelihoodSpace[i,j,k] = loglikParetoiii(c(p1[i], p2[j], p3[k]), obs = z)
+			}
+		}
+		ind = which(likelihoodSpace[i,,] == min(likelihoodSpace[i,,]), arr.ind=T)
+		optpar = optim(c(p1[i],p2[ind[1]],p3[ind[2]]),loglikParetoiii,obs=z,
+			method="L-BFGS-B",
+			lower = lower, upper=upper)
+		contour(p2,p3,likelihoodSpace[i,,], main=paste("Location:", p1[i]))
+		points(p2[ind[1]],p3[ind[2]])
+		points(optpar$par[2],optpar$par[3], pch = 3)
+		print(c(optpar$value, signif(p1[i],3), signif(p2[ind[1]],3), signif(p3[ind[2]],3)))
+	}	
+}
+
 getBounds = function(z) {
-	p2Window = 0.5
-	p3Window = 0.5
+	p2Window = 0.1
+	p3Window = 0.1
+	p1factor = 15
 	p2factor = 5
 	p3factor = 5	
+	
 	Ez = mean(z)
 	SDz = sd(z)
 	p1 = min(z)-SDz
@@ -205,7 +262,6 @@ getBounds = function(z) {
 	p1 = out1[1]; p2 = out1[2]
 	lower = c(p1-100*SDz,p2/p2factor, 0.001)
 	upper = c(min(z)-SDz/1000, p2*p2factor,min(p3factor*p3,0.49))	
-	
 	optPar = optim(c(p1,p2,p3),loglikParetoiii,obs=z,method="L-BFGS-B",
 		lower = lower, upper=upper)
 	
@@ -214,7 +270,7 @@ getBounds = function(z) {
 	p2 = optPar$par[2];	
 	p3 = optPar$par[3];
 	print(paste("Optimal bounds: ", p1,p2,p3))
-	lower = c(p1-SDz,p2*(p2Window), max(p3Window*p3,0.01))
+	lower = c(p1-p1factor*SDz,p2*(p2Window), max(p3Window*p3,0.01))
 	upper = c(min(z)-SDz/1000, p2*(2-p2Window),min((2-p3Window)*p3,0.99))	
 	list(lower=lower,upper=upper, optimal=c(p1,p2,p3))
 }
@@ -223,17 +279,21 @@ getBounds = function(z) {
 ######### the observed as a benchmark 
 output = function(Z.observed, Z.historical, Z.preindustrial, maxPoint, B=100, plotit=F) {	
 	###### 
-	boundsObs = getBounds(Z.observed)
-	boundsHist = getBounds(Z.historical)
-	boundsPre = getBounds(Z.preindustrial)
+	#boundsObs = getBounds(Z.observed)
+	#boundsHist = getBounds(Z.historical)
+	#boundsPre = getBounds(Z.preindustrial)
+	#non-detrended data
+	boundsPre$lower = c(4850,550,0.01) 
+	boundsPre$upper = c(5000,750,0.03)
+	boundsHist$lower = c(5250,150,0.01)
+	boundsHist$upper = c(5450,350,0.06)
+	boundsObs$lower = c(5350,20,0.01)
+	boundsObs$upper = c(5500,300,0.1)
 	
-	print("Bounds for the 3 data sets")
-	print(boundsObs)
-	print(boundsHist)
-	print(boundsPre)
-	optPar = optim(c(p1,p2,p3),loglikParetoiii,obs=z,method="L-BFGS-B",
-		lower = lower, upper=upper)
-
+	#print("Bounds for the 3 data sets")
+	#print(boundsHist)
+	#print(boundsPre)
+	
 	nobs = length(Z.observed)
 	nhist = length(Z.historical)
 	npre = length(Z.preindustrial)
@@ -252,7 +312,9 @@ output = function(Z.observed, Z.historical, Z.preindustrial, maxPoint, B=100, pl
 	paramsStar 		= matrix(0,B,9)	
 	returnPeriodObs = rep(0,B)
 	histAtPobs 		= rep(0,B)
-	returnPeriodPre = rep(0,B)
+	;
+	
+	returnPeriodPre = rep(0,B) 
 	ratioPreOverObs = rep(0,B)
 	PpreAtHistAtPobs= rep(0,B)
 	max.dat.ncep = maxPoint
@@ -272,18 +334,18 @@ output = function(Z.observed, Z.historical, Z.preindustrial, maxPoint, B=100, pl
 
 		out = optim(parObs[i,],loglikParetoiii, obs=obsStar,
 		 method="L-BFGS-B", lower=boundsObs$lower,upper=boundsObs$upper, hessian=F)
-		 
+		print(out$par)
 		returnPeriodObs[i] = signif(1/(1 - pparetoIII(max.dat.ncep,out$par[1],out$par[2],out$par[3])), 3)
 		pObs = pparetoIII(max.dat.ncep,out$par[1],out$par[2],out$par[3])
 		
 		outHist = optim(parHist[i,],loglikParetoiii, obs=histStar,
 		 method="L-BFGS-B", lower=boundsHist$lower,upper=boundsHist$upper, hessian=F)
-		# print(outHist$par)
+		 print(outHist$par)
 		histAtPobs[i] = qparetoIII(pObs, outHist$par[1],outHist$par[2],outHist$par[3])
 		# fit preindustrial
 		outPre = optim(parPre[i,],loglikParetoiii, obs=preStar,
 		 method="L-BFGS-B", lower=boundsPre$lower,upper=boundsPre$upper, hessian=F)
-		 #print(outPre$par)
+		 print(outPre$par)
 		#	plotZs(preStar, outPre$par, xlim=range(Z.preindustrial))
 		# Get return period for preindustrial
 		PpreAtHistAtPobs[i] = pparetoIII(histAtPobs[i],outPre$par[1],outPre$par[2],outPre$par[3])
@@ -293,7 +355,8 @@ output = function(Z.observed, Z.historical, Z.preindustrial, maxPoint, B=100, pl
 		par(mfrow=c(1,3))
 		if (plotit) {
 			par(ask=T)
-			plotZs(obsStar, out$par, xlim=range(Z.observed))
+			plotZs(obsStar, out$par, xlim=range(Z.observed), 
+				main=paste(out$par[1],out$par[2], out$par[3]))
 			plotZs(histStar, outHist$par, xlim=range(Z.historical))
 			plotZs(preStar, outPre$par, xlim=range(Z.preindustrial))
 			print(outPre$par)
