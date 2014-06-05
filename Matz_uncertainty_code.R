@@ -85,9 +85,11 @@ for (i in 1:nmodels) {
 }
 #################
 
-#Plot likelihood space
-boundsObs = getBounds(Z.observed)
-plotLikeli(Z.preindustrial, c(4850,550,0.01), c(5000,750,0.03), n=30)
+#Plot likelihood space - This is used to find the global maximum likelihood 
+# for each distribution and also find a nice frame around in the 3D space of
+# parameters
+boundsObs = getBounds(Z.preindustrial)
+plotLikeli(Z.preindustrial, c(4850,550,0.01), c(5000,750,0.03), n=20)
 ##### Good bounds for non-detrended data
 # Obs lower/upper: c(5350,20,0.01), c(5500,300,0.1)
 # Hist Global 5310.0000  288.0000    0.0238
@@ -96,6 +98,12 @@ plotLikeli(Z.preindustrial, c(4850,550,0.01), c(5000,750,0.03), n=30)
 #  	   lower/upper c(4850,550,0.01), c(5000,750,0.03)
 ##################################################
 ##### Good bounds for detrended data
+# Obs  global: -151.0000  151.0000    0.0463
+# 	   lower/upper: c(-200,17,0.01), c(-50,400,0.15)
+# Hist Global -602.000  602.000    0.010
+#      lower/upper c(-800,300,0.01), c(-400,800,0.06)
+# Pre  Global 4970.0000  616.0000    0.0107
+#  	   lower/upper c(4850,550,0.01), c(5000,750,0.03)
 
 
 #Plotting - ecdf
@@ -227,7 +235,7 @@ plotLikeli = function(z, lower, upper, n=40) {
 	p3 = seq(lower[3],upper[3], length = n)
 	likelihoodSpace = array(0, dim=c(n,n,n))
 	print(n)
-	par(ask=T)
+	par(mfrow=c(2,1), ask=T)
 	for (i in 1:n) {
 		for (j in 1:n) {
 			for (k in 1:n) {
@@ -241,7 +249,10 @@ plotLikeli = function(z, lower, upper, n=40) {
 		contour(p2,p3,likelihoodSpace[i,,], main=paste("Location:", p1[i]))
 		points(p2[ind[1]],p3[ind[2]])
 		points(optpar$par[2],optpar$par[3], pch = 3)
-		print(c(optpar$value, signif(p1[i],3), signif(p2[ind[1]],3), signif(p3[ind[2]],3)))
+		print(c(optpar$value, signif(optpar$par[1],3), 
+			signif(optpar$par[2],3), 
+			signif(optpar$par[3],3)))
+		plotZs(z,optpar$par)
 	}	
 }
 
@@ -282,14 +293,23 @@ output = function(Z.observed, Z.historical, Z.preindustrial, maxPoint, B=100, pl
 	#boundsObs = getBounds(Z.observed)
 	#boundsHist = getBounds(Z.historical)
 	#boundsPre = getBounds(Z.preindustrial)
-	#non-detrended data
-	boundsPre$lower = c(4850,550,0.01) 
-	boundsPre$upper = c(5000,750,0.03)
-	boundsHist$lower = c(5250,150,0.01)
-	boundsHist$upper = c(5450,350,0.06)
-	boundsObs$lower = c(5350,20,0.01)
-	boundsObs$upper = c(5500,300,0.1)
+	##### Good bounds for non-detrended data
+#	boundsPre$lower = c(4850,550,0.01); boundsPre$upper = c(5000,750,0.03)
+#	boundsHist$lower = c(5250,150,0.01);boundsHist$upper = c(5450,350,0.06)
+#	boundsObs$lower = c(5350,20,0.01); boundsObs$upper = c(5500,300,0.1)
 	
+	##### Good bounds for detrended data
+# Obs  global: -151.0000  151.0000    0.0463
+# 	   lower/upper: c(-200,17,0.01), c(-50,400,0.15)
+# Hist Global -602.000  602.000    0.010
+#      lower/upper c(-800,300,0.01), c(-400,800,0.06)
+# Pre  Global 4970.0000  616.0000    0.0107
+#  	   lower/upper c(4850,550,0.01), c(5000,750,0.03)
+	boundsPre$lower = c(4850,550,0.01); boundsPre$upper = c(5000,750,0.03)
+	boundsHist$lower = c(-800,300,0.01);boundsHist$upper =  c(-400,800,0.06)
+	boundsObs$lower = c(-200,17,0.01); boundsObs$upper = c(-50,400,0.15)
+	
+
 	#print("Bounds for the 3 data sets")
 	#print(boundsHist)
 	#print(boundsPre)
