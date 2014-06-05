@@ -64,7 +64,7 @@ points(35,pred.2013)
 c(dt.observed$resid,max.dat.ncep - pred.2013)
 
 Z.giss.dt <- c(dt.giss$resid)
-Z.hadgem.dt <- c(dt.hadgem$resid)
+Z.hadgem.dt <- unlist(c(dt.hadgem$resid))
 Z.noresm.dt <- c(dt.noresm$resid)
 Z.observed.dt <- c(dt.observed$resid)
 #obs.2013.dt <- max.dat.ncep - pred.2013
