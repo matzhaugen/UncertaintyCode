@@ -1,7 +1,7 @@
 #dir = "/Users/matzhaugen/GoogleDrive/Research/DSwainCollaboration/SharedBAMS/UncertaintyCode"
 #setwd(dir)
 
-dir = "/Users/dlswain/Dropbox/BAMS_2013/UncertaintyCode2"
+dir = "/Users/matzhaugen/GoogleDrive/Research/DSwainCollaboration/SharedBAMS/UncertaintyCode"
 setwd(dir)
 
 library(ncdf4)
@@ -61,12 +61,14 @@ total_2013 = max(hgt.annual.full)
 ###########################################################
 
 ##########USE THESE VARIABLES IF DETRENDING#################
-Z.historical = c(Z.giss.dt,Z.hadgem.dt,Z.noresm.dt)
+Z.historical = c(Z.giss.dt,unlist(Z.hadgem.dt),Z.noresm.dt)
 Z.preindustrial = c(hgt.giss.pi,hgt.hadgem.pi,hgt.noresm.pi)
 Z.historical = Z.historical[!is.na(Z.historical)]
 Z.preindustrial = Z.preindustrial[!is.na(Z.preindustrial)]
 Z.observed = Z.observed.dt
 total_2013 = obs.2013.dt
+# RESULTS: MEDIAN = 1.08
+# 95% Confidence interval (B=1000) : [0.70, 1.69]
 ###########################################################
 
 # Run Bootstrap #
@@ -98,11 +100,11 @@ plotLikeli(Z.preindustrial, c(4850,550,0.01), c(5000,750,0.03), n=20)
 #  	   lower/upper c(4850,550,0.01), c(5000,750,0.03)
 ##################################################
 ##### Good bounds for detrended data
-# Obs  global: -151.0000  151.0000    0.0463
-# 	   lower/upper: c(-200,17,0.01), c(-50,400,0.15)
-# Hist Global -602.000  602.000    0.010
-#      lower/upper c(-800,300,0.01), c(-400,800,0.06)
-# Pre  Global 4970.0000  616.0000    0.0107
+# Obs  global: 5430.0000  155.0000    0.0450
+# 	   lower/upper: c(5350,20,0.01), c(5500,300,0.15)
+# Hist Global 4940.000  645.000    0.010
+#      lower/upper c(4850,350,0.01), c(5150,750,0.06)
+# Pre  Global 4920.000  667.000    0.010
 #  	   lower/upper c(4850,550,0.01), c(5000,750,0.03)
 
 
@@ -299,15 +301,15 @@ output = function(Z.observed, Z.historical, Z.preindustrial, maxPoint, B=100, pl
 #	boundsObs$lower = c(5350,20,0.01); boundsObs$upper = c(5500,300,0.1)
 	
 	##### Good bounds for detrended data
-# Obs  global: -151.0000  151.0000    0.0463
-# 	   lower/upper: c(-200,17,0.01), c(-50,400,0.15)
-# Hist Global -602.000  602.000    0.010
-#      lower/upper c(-800,300,0.01), c(-400,800,0.06)
-# Pre  Global 4970.0000  616.0000    0.0107
+# Obs  global: 5430.0000  155.0000    0.0450
+# 	   lower/upper: c(5350,20,0.01), c(5500,300,0.15)
+# Hist Global 4940.000  645.000    0.010
+#      lower/upper c(4850,350,0.01), c(5150,750,0.06)
+# Pre  Global 4920.000  667.000    0.010
 #  	   lower/upper c(4850,550,0.01), c(5000,750,0.03)
 	boundsPre$lower = c(4850,550,0.01); boundsPre$upper = c(5000,750,0.03)
-	boundsHist$lower = c(-800,300,0.01);boundsHist$upper =  c(-400,800,0.06)
-	boundsObs$lower = c(-200,17,0.01); boundsObs$upper = c(-50,400,0.15)
+	boundsHist$lower = c(4850,350,0.01);boundsHist$upper =  c(5150,750,0.06)
+	boundsObs$lower = c(5350,20,0.01); boundsObs$upper = c(5500,300,0.15)
 	
 
 	#print("Bounds for the 3 data sets")
