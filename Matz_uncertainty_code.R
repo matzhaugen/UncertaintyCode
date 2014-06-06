@@ -91,9 +91,10 @@ for (i in 1:nmodels) {
 # for each distribution and also find a nice frame around in the 3D space of
 # parameters
 boundsObs = getBounds(Z.preindustrial)
-plotLikeli(Z.preindustrial, c(4850,550,0.01), c(5000,750,0.03), n=20)
+plotLikeli(Z.observed, c(5350,20,0.01), c(5500,300,0.1), n=20)
 ##### Good bounds for non-detrended data
-# Obs lower/upper: c(5350,20,0.01), c(5500,300,0.1)
+# Obs  Global 5380.0000  211.0000    0.0342
+#		lower/upper: c(5350,20,0.01), c(5500,300,0.1)
 # Hist Global 5310.0000  288.0000    0.0238
 #      lower/upper c(5250,150,0.01), c(5450,350,0.06)
 # Pre  Global 4970.0000  616.0000    0.0107
