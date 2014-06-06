@@ -395,4 +395,19 @@ output = function(Z.observed, Z.historical, Z.preindustrial, maxPoint, B=100, pl
 	ratioPreOverObs
 }
 
+comp.hist <- function(x,y,main="",xlab="") {
+	h.x = hist(x,plot=F)
+	h.y = hist(y,plot=F)
+	dx = max(abs(h.x$breaks[1]-h.x$breaks[2]),h.y$breaks[1]-h.y$breaks[2])
+	u = range(c(h.x$breaks,h.y$breaks))
+	
+	ylim = range(c(h.x$density,h.y$density))
+	breaks = seq(u[1],u[2],dx)
+	if (max(breaks)<max(ylim)) breaks = c(breaks,max(breaks)+dx)
+	
+	hist(x,breaks=breaks,density=15,ylim=ylim,col="blue",xlim=u,freq=F,main=main,xlab=xlab)
+	hist(y,breaks=breaks,density=15,col="red",add=T,freq=F,angle=-45)
+}
+
+
 #### END MATZ's code ###########
