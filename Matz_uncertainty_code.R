@@ -57,6 +57,7 @@ Z.preindustrial = Z.preindustrial[!is.na(Z.preindustrial)]
 Z.observed = hgt.annual.full[1:34]
 total_2013 = max(hgt.annual.full)
 # RESULTS: MEDIAN = 4.61
+#          Point Estimate = 3.7
 # 95% Confidence interval (B=1000) : [2.67, 9.95]
 ###########################################################
 
@@ -68,12 +69,13 @@ Z.preindustrial = Z.preindustrial[!is.na(Z.preindustrial)]
 Z.observed = Z.observed.dt
 total_2013 = obs.2013.dt
 # RESULTS: MEDIAN = 1.08
+# 			Point estimate = 1.07
 # 95% Confidence interval (B=1000) : [0.70, 1.69]
 ###########################################################
 
 # Run Bootstrap #
 set.seed(3)
-B = 10
+B = 100
 nmodels = 1
 ratios = matrix(0, B, nmodels)
 for (i in 1:nmodels) {
@@ -83,7 +85,7 @@ for (i in 1:nmodels) {
 	Z.historical = Z.historical[!is.na(Z.historical)]
 	Z.preindustrial = Z.preindustrial[!is.na(Z.preindustrial)]
 	
-	ratios[,i] = output(Z.observed, Z.historical, Z.preindustrial, total_2013, B, plotit=T)
+	ratios[,i] = output(Z.observed, Z.historical, Z.preindustrial, total_2013, B, plotit=F)
 }
 #################
 
@@ -308,6 +310,7 @@ output = function(Z.observed, Z.historical, Z.preindustrial, maxPoint, B=100, pl
 #      lower/upper c(4850,350,0.01), c(5150,750,0.06)
 # Pre  Global 4920.000  667.000    0.010
 #  	   lower/upper c(4850,550,0.01), c(5000,750,0.03)
+	boundsPre = list(); boundsHist = list(); boundsObs = list();
 	boundsPre$lower = c(4850,550,0.01); boundsPre$upper = c(5000,750,0.03)
 	boundsHist$lower = c(4850,350,0.01);boundsHist$upper =  c(5150,750,0.06)
 	boundsObs$lower = c(5350,20,0.01); boundsObs$upper = c(5500,300,0.15)
@@ -335,8 +338,8 @@ output = function(Z.observed, Z.historical, Z.preindustrial, maxPoint, B=100, pl
 	paramsStar 		= matrix(0,B,9)	
 	returnPeriodObs = rep(0,B)
 	histAtPobs 		= rep(0,B)
-	;
 	
+
 	returnPeriodPre = rep(0,B) 
 	ratioPreOverObs = rep(0,B)
 	PpreAtHistAtPobs= rep(0,B)
@@ -347,6 +350,15 @@ output = function(Z.observed, Z.historical, Z.preindustrial, maxPoint, B=100, pl
 			obsStar = Z.observed
 			histStar = Z.historical
 			preStar = Z.preindustrial
+			# Non-detrended data Global minima
+			parObs[i,] = c(5380.0000, 211.0000, 0.0342)
+			parHist[i,] = c(5310.0000, 288.0000, 0.0238)
+			parPre[i,] = c(4970.0000, 616.0000, 0.0107)
+			# Detrended data 	Global minima		
+			parObs[i,] = c(5430.0000, 155.0000, 0.0450)
+			parHist[i,] = c(4940.000, 645.000, 0.010)
+			parPre[i,] = c(4920.000, 667.000, 0.010)
+
 		} else { # Bootstrap
 			obsStar = Z.observed[resample(1:nobs,nobs,replace=T)]
 			histStar = Z.historical[resample(1:nhist,nhist,replace=T)]
