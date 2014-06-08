@@ -48,6 +48,13 @@ load("z.obs.new")
 load("Detrended.RData")
 
 #DANIEL'S EDITS 6-3-2014
+###STUFF FOR PRESERVING MEAN
+z.obs.2 = (Z.observed.dt - mean(Z.observed.dt)) + mean(hgt.annual.full[1:34])
+z.hist.giss.2   = (Z.giss.dt - mean(Z.giss.dt)) + mean(hgt.giss.hist[!is.na(hgt.giss.hist)])
+z.hist.hadgem.2 = (Z.hadgem.dt - mean(Z.hadgem.dt)) + mean(hgt.hadgem.hist[!is.na(hgt.hadgem.hist)])
+z.hist.noresm.2 = (Z.noresm.dt - mean(Z.noresm.dt)) + mean(hgt.noresm.hist[!is.na(hgt.noresm.hist)])
+z.2013.2 = (obs.2013.dt - mean(Z.observed.dt)) + mean(hgt.annual.full[1:34])
+
 
 ##########USE THESE VARIABLES IF *NOT* DETRENDING##########
 Z.historical = c(hgt.giss.hist,hgt.hadgem.hist,hgt.noresm.hist)
@@ -73,9 +80,22 @@ total_2013 = obs.2013.dt
 # 95% Confidence interval (B=1000) : [0.70, 1.69]
 ###########################################################
 
+##########USE THESE VARIABLES IF DETRENDING AND PRESERVING MEAN#################
+Z.historical = c(z.hist.giss.2,z.hist.hadgem.2,z.hist.noresm.2)
+Z.preindustrial = c(hgt.giss.pi,hgt.hadgem.pi,hgt.noresm.pi)
+Z.historical = Z.historical[!is.na(Z.historical)]
+Z.preindustrial = Z.preindustrial[!is.na(Z.preindustrial)]
+Z.observed = z.obs.2
+total_2013 = z.2013.2
+# RESULTS: MEDIAN = 2.65
+# 			Point estimate = 2.64
+# 95% Confidence interval (B=1000) : [1.67, 4.28]
+###########################################################
+
+
 # Run Bootstrap #
 set.seed(3)
-B = 100
+B = 1000
 nmodels = 1
 ratios = matrix(0, B, nmodels)
 for (i in 1:nmodels) {
@@ -93,7 +113,7 @@ for (i in 1:nmodels) {
 # for each distribution and also find a nice frame around in the 3D space of
 # parameters
 boundsObs = getBounds(Z.preindustrial)
-plotLikeli(Z.observed, c(5350,20,0.01), c(5500,300,0.1), n=20)
+plotLikeli(Z.preindustrial, c(4850,550,0.01), c(5000,750,0.03), n=20)
 ##### Good bounds for non-detrended data
 # Obs  Global 5380.0000  211.0000    0.0342
 #		lower/upper: c(5350,20,0.01), c(5500,300,0.1)
@@ -107,6 +127,14 @@ plotLikeli(Z.observed, c(5350,20,0.01), c(5500,300,0.1), n=20)
 # 	   lower/upper: c(5350,20,0.01), c(5500,300,0.15)
 # Hist Global 4940.000  645.000    0.010
 #      lower/upper c(4850,350,0.01), c(5150,750,0.06)
+# Pre  Global 4920.000  667.000    0.010
+#  	   lower/upper c(4850,550,0.01), c(5000,750,0.03)
+##################################################
+##### Good bounds for detrended mean preserving data
+# Obs  global: 5440.0000  154.0000    0.0454
+# 	   lower/upper: c(5350,20,0.01), c(5500,300,0.1)
+# Hist Global 4950.000  644.000    0.010
+#      lower/upper c(4750,350,0.01), c(5050,950,0.06)
 # Pre  Global 4920.000  667.000    0.010
 #  	   lower/upper c(4850,550,0.01), c(5000,750,0.03)
 
@@ -311,9 +339,20 @@ output = function(Z.observed, Z.historical, Z.preindustrial, maxPoint, B=100, pl
 # Pre  Global 4920.000  667.000    0.010
 #  	   lower/upper c(4850,550,0.01), c(5000,750,0.03)
 	boundsPre = list(); boundsHist = list(); boundsObs = list();
+	# boundsPre$lower = c(4850,550,0.01); boundsPre$upper = c(5000,750,0.03)
+	# boundsHist$lower = c(4850,350,0.01);boundsHist$upper =  c(5150,750,0.06)
+	# boundsObs$lower = c(5350,20,0.01); boundsObs$upper = c(5500,300,0.15)
+##### Good bounds for detrended mean preserving data
+# Obs  global: 5440.0000  154.0000    0.0454
+# 	   lower/upper: c(5350,20,0.01), c(5500,300,0.1)
+# Hist Global 4950.000  644.000    0.010
+#      lower/upper c(4750,350,0.01), c(5050,950,0.06)
+# Pre  Global 4920.000  667.000    0.010
+#  	   lower/upper c(4850,550,0.01), c(5000,750,0.03)
 	boundsPre$lower = c(4850,550,0.01); boundsPre$upper = c(5000,750,0.03)
-	boundsHist$lower = c(4850,350,0.01);boundsHist$upper =  c(5150,750,0.06)
-	boundsObs$lower = c(5350,20,0.01); boundsObs$upper = c(5500,300,0.15)
+	boundsHist$lower = c(4750,350,0.01);boundsHist$upper =  c(5050,950,0.06)
+	boundsObs$lower = c(5350,20,0.01); boundsObs$upper = c(5500,300,0.1)
+
 	
 
 	#print("Bounds for the 3 data sets")
@@ -350,13 +389,17 @@ output = function(Z.observed, Z.historical, Z.preindustrial, maxPoint, B=100, pl
 			obsStar = Z.observed
 			histStar = Z.historical
 			preStar = Z.preindustrial
-			# Non-detrended data Global minima
-			parObs[i,] = c(5380.0000, 211.0000, 0.0342)
-			parHist[i,] = c(5310.0000, 288.0000, 0.0238)
-			parPre[i,] = c(4970.0000, 616.0000, 0.0107)
-			# Detrended data 	Global minima		
-			parObs[i,] = c(5430.0000, 155.0000, 0.0450)
-			parHist[i,] = c(4940.000, 645.000, 0.010)
+			# # Non-detrended data Global minima
+			# parObs[i,] = c(5380.0000, 211.0000, 0.0342)
+			# parHist[i,] = c(5310.0000, 288.0000, 0.0238)
+			# parPre[i,] = c(4970.0000, 616.0000, 0.0107)
+			# # Detrended data 	Global minima		
+			# parObs[i,] = c(5430.0000, 155.0000, 0.0450)
+			# parHist[i,] = c(4940.000, 645.000, 0.010)
+			# parPre[i,] = c(4920.000, 667.000, 0.010)
+			# Detrended mean preserving Global minima
+			parObs[i,] = c(5440.0000, 154.0000, 0.0454)
+			parHist[i,] = c(4950.000, 644.000, 0.010)
 			parPre[i,] = c(4920.000, 667.000, 0.010)
 
 		} else { # Bootstrap
